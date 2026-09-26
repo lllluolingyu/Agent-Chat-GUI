@@ -33,9 +33,14 @@
   padding: 16px;
   border: 1px solid var(--glass-border-strong);
   border-radius: var(--radius);
-  background: var(--surface-fallback);
-  background: var(--surface-elevated);
-  backdrop-filter: blur(var(--glass-blur));
+  /* Opaque, unlike AgentGUI's glass panels: this one floats over the
+   * transcript and carries numbers, and a dollar figure with sentences
+   * bleeding through it is unreadable. The elevated tint is laid over the
+   * solid fallback (upstream's own layering idiom) so the theme still shows
+   * through in both palettes without any transparency surviving. */
+  background:
+    linear-gradient(var(--surface-elevated), var(--surface-elevated)),
+    var(--surface-fallback);
   box-shadow: var(--glass-shadow);
   text-align: left;
 }
@@ -121,6 +126,27 @@ table.grid .meter { min-width: 11rem; }
 .notice[data-kind="error"] { color: var(--err); }
 .notice[data-kind="ok"] { color: var(--ok); }
 .empty { color: var(--muted-solid); font-size: 12px; }
+
+/* --- quota editor ----------------------------------------------------------
+ * A native <dialog> renders as a white system box otherwise, which on a dark
+ * page is worse than no styling at all. Opaque for the same reason as the
+ * panel: these are numbers that decide what a person may spend. */
+
+.app-dialog {
+  width: min(30rem, 92vw);
+  padding: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-fallback);
+  color: var(--text);
+  font-family: var(--sans);
+  box-shadow: var(--glass-shadow);
+}
+.app-dialog::backdrop { background: rgba(4, 6, 12, 0.58); }
+.app-dialog form { display: grid; gap: 14px; }
+.app-dialog h2 { margin: 0; font-size: 16px; }
+/* :not(.notice) so this never outranks the error colour on the save notice. */
+.app-dialog form > p:not(.notice) { margin: 0; font-size: 12px; color: var(--muted-solid); line-height: 1.5; }
 
 @media (max-width: 760px) {
   table.grid thead { display: none; }
