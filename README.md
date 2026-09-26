@@ -17,7 +17,9 @@ conversation frames back to that user.
   approvals, attachments, stop, fork, and the model catalog;
 - server-assigned workspaces, one tree per user, selected by name;
 - USD quotas on two rolling windows, billed from token counts through an
-  operator-owned price table, with admin policy editing and credits;
+  operator-owned price table shipped with current Claude, GPT, and Codex rates;
+- an admin console at `/admin` for accounts, quota limits, credits, and the
+  charge ledger, and a quota meter in the chat topbar for everyone;
 - the boundaries and trust model in [`docs/architecture.md`](docs/architecture.md).
 
 ## Install and run
@@ -63,17 +65,38 @@ with the window it was granted in.
 
 Cost is computed from token counts using `prices.toml` (USD per million
 tokens), never from an agent's own estimate — the Claude SDK documents
-`total_cost_usd` as a client-side estimate that must not bill end users. A model
-missing from the table is billed at `[fallback]` and its ledger rows are marked
-`fallback`, so add your real models and prices before relying on the numbers.
+`total_cost_usd` as a client-side estimate that must not bill end users.
 Backends differ in what their counters include, and Agent Chat bills each one in
 its own convention: Anthropic reports cache reads and writes beside input, while
 Codex and LingCore report cached input inside it.
+
+The shipped table lists current Claude, GPT, and Codex rates, and the file's own
+header records what it cannot express — long-context and fast-mode tiers, which
+under-bill, and batch tiers, which over-bill. Check the rates against your own
+bill before relying on them. A model that is not listed is billed at
+`[fallback]` and marked `fallback` in the ledger, which the admin console shows
+so you can add the missing rate. Only an exact id or a dated snapshot of one
+(`claude-opus-5-5-20260901`) counts as listed: a new sibling of a listed model
+falls to `[fallback]` rather than quietly inheriting a cheaper relative's price.
+Rates are read at startup, so restart the server after editing the file.
 
 Usage is only ever recorded from backend frames. A browser cannot report usage
 and cannot override a refusal. For backends that report session running totals
 (Claude, Codex) only the increase is billed, so reconnects, resumes, repeated
 notifications, and forks do not double-charge.
+
+## Admin console
+
+An admin gets an **Admin** link in the chat topbar, or can open `/admin`
+directly. From there they can create accounts, change a role, disable an account,
+set a temporary password, edit either quota window, grant a credit, and read the
+charge ledger filtered by user. The console also shows which `prices.toml` is in
+force; rates themselves are edited on the serving machine, which keeps billing
+out of reach of a hijacked browser session.
+
+Every control there calls an admin-only API that re-checks the caller's role, so
+hiding a control is a convenience and never the access decision. A member who
+reaches `/admin` is sent back to the chat.
 
 ## Users and workspaces
 

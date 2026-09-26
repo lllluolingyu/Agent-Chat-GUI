@@ -1,0 +1,130 @@
+/* Agent Chat product styles: the quota meters injected into AgentGUI's topbar,
+ * and the admin console page. Only AgentGUI's design tokens are referenced, so
+ * both themes and any upstream palette change carry over untouched. */
+
+/* --- quota chip + panel ---------------------------------------------------- */
+
+.quota-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.quota-chip:hover { background: var(--glass-bg-strong); }
+.quota-chip[hidden] { display: none; }
+.quota-chip .quota-track { width: 34px; }
+
+.quota-wrap { position: relative; display: inline-flex; }
+.quota-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(20rem, 84vw);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-fallback);
+  background: var(--surface-elevated);
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
+  text-align: left;
+}
+.quota-panel[hidden] { display: none; }
+.quota-panel h3 { margin: 0; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-solid); }
+.quota-foot { margin: 0; font-size: 11px; color: var(--muted-solid); line-height: 1.5; }
+
+/* --- one meter (used in the panel and in the admin table) ------------------ */
+
+.meter { display: grid; gap: 6px; font-size: 12px; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.meter-name { color: var(--text); font-weight: 600; }
+.meter-window { color: var(--muted-solid); font-size: 11px; font-weight: 400; }
+.meter-value { color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meter-note { color: var(--muted-solid); font-size: 11px; }
+
+.quota-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-solid) 26%, transparent);
+  overflow: hidden;
+}
+.quota-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--ok);
+  transition: width .3s ease;
+}
+/* Thresholds, not a gradient: the colour states a fact about the limit. */
+.quota-track[data-state="warn"] .quota-fill { background: var(--warn); }
+.quota-track[data-state="over"] .quota-fill { background: var(--err); }
+.quota-track[data-state="none"] .quota-fill { width: 100%; background: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* --- admin console -------------------------------------------------------- */
+
+.admin-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); }
+.admin-shell { width: min(68rem, 94vw); margin: 0 auto; padding: 28px 0 64px; display: grid; gap: 22px; }
+.admin-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.admin-top h1 { margin: 0; font-size: 20px; }
+.admin-top .spacer { flex: 1; }
+
+.card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-elevated);
+}
+.card > h2 { margin: 0; font-size: 15px; }
+.card > p { margin: 0; font-size: 12px; color: var(--muted-solid); line-height: 1.55; }
+
+.field { display: grid; gap: 5px; font-size: 12px; color: var(--text-2); }
+.field input, .field select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+.field-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.field-row .field { flex: 1 1 8rem; min-width: 7rem; }
+
+table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.grid th, table.grid td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.grid th { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-solid); font-weight: 600; }
+table.grid tbody tr:hover { background: var(--glass-bg-subtle); }
+table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.grid .meter { min-width: 11rem; }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--glass-border); color: var(--text-2); }
+.tag[data-kind="admin"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.tag[data-kind="disabled"] { color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); }
+.tag[data-kind="fallback"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.notice { margin: 0; font-size: 12px; min-height: 1.2em; }
+.notice[data-kind="error"] { color: var(--err); }
+.notice[data-kind="ok"] { color: var(--ok); }
+.empty { color: var(--muted-solid); font-size: 12px; }
+
+@media (max-width: 760px) {
+  table.grid thead { display: none; }
+  table.grid tr { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  table.grid td { border: 0; padding: 2px 0; }
+  table.grid td.num { text-align: left; }
+}

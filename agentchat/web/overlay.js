@@ -6,25 +6,36 @@
 // resolves workspace names to paths, so nothing in this file can raise a limit
 // or reach another user's files.
 
+import { meters, money, tightest, track, windowName } from "./quota.js";
+
 const $ = (id) => document.getElementById(id);
 
-// --- quota chip --------------------------------------------------------------
+// --- quota chip + panel ------------------------------------------------------
 
 function renderQuota(windows) {
   if (!Array.isArray(windows) || !windows.length) return;
   const chip = $("quota-chip");
+  const panel = $("quota-meters");
+  if (panel) meters(panel, windows);
   if (!chip) return;
-  const parts = [];
-  for (const w of windows) {
-    if (w.limit_usd == null) continue;
-    const remaining = Number(w.remaining_usd);
-    parts.push(`${w.window} $${remaining.toFixed(2)} left`);
-    if (remaining <= 0) chip.dataset.state = "empty";
+
+  const tight = tightest(windows);
+  chip.replaceChildren();
+  if (!tight) {
+    chip.append(document.createTextNode("No quota limit"));
+  } else {
+    // The chip shows the window that will stop the next turn first; the panel
+    // has the full picture.
+    const remaining = Number(tight.remaining_usd);
+    chip.append(
+      track(tight),
+      document.createTextNode(
+        remaining <= 0
+          ? `${windowName(tight.window)} spent`
+          : `${money(tight.remaining_usd)} left`,
+      ),
+    );
   }
-  chip.textContent = parts.join(" · ") || "unlimited";
-  chip.title = windows
-    .map((w) => `${w.window}: $${Number(w.spent_usd).toFixed(4)} spent in ${w.window_hours}h`)
-    .join("\n");
   chip.hidden = false;
 }
 
@@ -32,8 +43,7 @@ async function refreshQuota() {
   try {
     const response = await fetch("/api/me/quota");
     if (!response.ok) return;
-    const data = await response.json();
-    renderQuota(data.windows);
+    renderQuota((await response.json()).windows);
   } catch {
     /* transient: the chip simply keeps its last value */
   }
@@ -47,10 +57,10 @@ function note(kind, text) {
   // Same classes the page styles its own notes with.
   const row = document.createElement("div");
   row.className = "row event";
-  const note = document.createElement("div");
-  note.className = `note ${kind}`;
-  note.textContent = text;
-  row.append(note);
+  const body = document.createElement("div");
+  body.className = `note ${kind}`;
+  body.textContent = text;
+  row.append(body);
   thread.append(row);
   row.scrollIntoView({ block: "end" });
 }
@@ -58,10 +68,11 @@ function note(kind, text) {
 function onFrame(msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "quota_exceeded") {
-    const retry = msg.retry_at ? ` Try again after ${new Date(msg.retry_at).toLocaleString()}.` : "";
+    const retry = msg.retry_at
+      ? ` Try again after ${new Date(msg.retry_at).toLocaleString()}.`
+      : "";
     note("error", `${msg.message || "Quota exhausted."}${retry}`);
-    const chip = $("quota-chip");
-    if (chip) chip.dataset.state = "empty";
+    openPanel(true);
     refreshQuota();
   } else if (msg.type === "usage") {
     if (Array.isArray(msg.quota)) renderQuota(msg.quota);
@@ -88,24 +99,83 @@ Object.assign(window.WebSocket, NativeWebSocket);
 
 // --- chrome: who is signed in, sign out, workspace naming -------------------
 
+function openPanel(open) {
+  const chip = $("quota-chip");
+  const panel = $("quota-panel");
+  if (!chip || !panel) return;
+  panel.hidden = !open;
+  chip.setAttribute("aria-expanded", String(open));
+}
+
+function mountQuota(meta) {
+  const wrap = document.createElement("span");
+  wrap.className = "quota-wrap";
+  const chip = document.createElement("button");
+  chip.id = "quota-chip";
+  chip.className = "quota-chip";
+  chip.type = "button";
+  chip.hidden = true;
+  chip.setAttribute("aria-expanded", "false");
+  chip.setAttribute("aria-label", "Usage quota");
+
+  const panel = document.createElement("div");
+  panel.id = "quota-panel";
+  panel.className = "quota-panel";
+  panel.hidden = true;
+  panel.setAttribute("role", "group");
+  panel.setAttribute("aria-label", "Usage quota");
+  const heading = document.createElement("h3");
+  heading.textContent = "Usage quota";
+  const body = document.createElement("div");
+  body.id = "quota-meters";
+  body.style.display = "grid";
+  body.style.gap = "14px";
+  const foot = document.createElement("p");
+  foot.className = "quota-foot";
+  foot.textContent =
+    "Both limits roll: spend leaves a window as it ages out, so a refusal lifts by itself. A turn already running is never cut off.";
+  panel.append(heading, body, foot);
+  wrap.append(chip, panel);
+
+  chip.addEventListener("click", () => {
+    const opening = panel.hidden;
+    openPanel(opening);
+    if (opening) refreshQuota();
+  });
+  document.addEventListener("click", (event) => {
+    if (!panel.hidden && !wrap.contains(event.target)) openPanel(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !panel.hidden) {
+      openPanel(false);
+      chip.focus();
+    }
+  });
+  meta.prepend(wrap);
+}
+
 function mountTopbar(user) {
   const meta = document.querySelector(".topbar-meta");
   if (!meta) return;
-  const quota = document.createElement("span");
-  quota.id = "quota-chip";
-  quota.className = "agent-chip";
-  quota.hidden = true;
   const who = document.createElement("span");
   who.className = "agent-chip";
-  who.textContent = user.role === "admin" ? `${user.username} (admin)` : user.username;
+  who.textContent = user.username;
   const out = document.createElement("button");
-  out.className = "btn";
+  out.className = "btn btn-sm";
   out.textContent = "Sign out";
   out.addEventListener("click", async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     location.href = "/login";
   });
-  meta.prepend(quota, who, out);
+  if (user.role === "admin") {
+    const admin = document.createElement("a");
+    admin.className = "btn btn-sm";
+    admin.href = "/admin";
+    admin.textContent = "Admin";
+    meta.prepend(admin);
+  }
+  meta.prepend(who, out);
+  mountQuota(meta);
 }
 
 function relabelWorkspace() {

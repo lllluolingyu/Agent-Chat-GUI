@@ -92,6 +92,9 @@ class WindowSpend:
     window_hours: int
     spent_micros: int
     limit_micros: int | None
+    # When the oldest charge still inside this window ages out of it, which is
+    # the soonest the window can free up. ``None`` when nothing is counted yet.
+    resets_at: datetime | None = None
 
     @property
     def remaining_micros(self) -> int | None:
@@ -109,6 +112,7 @@ class WindowSpend:
             if self.limit_micros is None
             else str(usd(self.limit_micros)),
             "remaining_usd": None if remaining is None else str(usd(remaining)),
+            "resets_at": None if self.resets_at is None else self.resets_at.isoformat(),
         }
 
 
@@ -168,29 +172,10 @@ class QuotaService:
         ).fetchone()
         return int(row[0])
 
-    def windows(self, user_id: str) -> list[WindowSpend]:
-        policy = self.policy(user_id)
-        return [
-            WindowSpend(
-                "budget",
-                policy.budget_window_hours,
-                self.spent_micros(user_id, policy.budget_window_hours),
-                policy.budget_micros,
-            ),
-            WindowSpend(
-                "burst",
-                policy.burst_window_hours,
-                self.spent_micros(user_id, policy.burst_window_hours),
-                policy.burst_micros,
-            ),
-        ]
+    def _resets_at(self, user_id: str, window_hours: int) -> datetime | None:
+        """When the oldest charge inside this window ages out of it."""
 
-    def _retry_at(self, user_id: str, window: WindowSpend) -> datetime | None:
-        """When the oldest charge in this window ages out of it."""
-
-        if window.limit_micros is None:
-            return None
-        since = (_now() - timedelta(hours=window.window_hours)).isoformat()
+        since = (_now() - timedelta(hours=window_hours)).isoformat()
         row = self.db.execute(
             """SELECT min(created_at) FROM usage_ledger
                WHERE user_id = ? AND created_at > ? AND cost_micros > 0""",
@@ -202,7 +187,29 @@ class QuotaService:
             oldest = datetime.fromisoformat(row[0])
         except ValueError:
             return None
-        return oldest + timedelta(hours=window.window_hours)
+        return oldest + timedelta(hours=window_hours)
+
+    def _window(
+        self, user_id: str, name: str, hours: int, limit: int | None
+    ) -> WindowSpend:
+        return WindowSpend(
+            name,
+            hours,
+            self.spent_micros(user_id, hours),
+            limit,
+            self._resets_at(user_id, hours),
+        )
+
+    def windows(self, user_id: str) -> list[WindowSpend]:
+        policy = self.policy(user_id)
+        return [
+            self._window(
+                user_id, "budget", policy.budget_window_hours, policy.budget_micros
+            ),
+            self._window(
+                user_id, "burst", policy.burst_window_hours, policy.burst_micros
+            ),
+        ]
 
     def check(self, user_id: str) -> QuotaDecision:
         """Decide whether ``user_id`` may start another turn.
@@ -223,7 +230,7 @@ class QuotaService:
                     f"{window.name} quota exhausted: ${spent} used of ${limit} "
                     f"in the last {window.window_hours}h",
                     window.name,
-                    self._retry_at(user_id, window),
+                    window.resets_at,
                 )
         return QuotaDecision(True)
 

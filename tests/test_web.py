@@ -18,10 +18,29 @@ def test_signed_in_page_loads_the_overlay_before_the_app_module(
 ) -> None:
     sign_in("alice")
     html = client.get("/").text
-    assert html.index("/overlay.js") < html.index("/js/main.js")
+    assert html.index("/app/overlay.js") < html.index("/js/main.js")
+    assert "/app/agentchat.css" in html
     # AgentGUI's own assets are served unchanged beside it.
     assert client.get("/js/main.js").status_code == 200
     assert client.get("/style.css").status_code == 200
-    overlay = client.get("/overlay.js")
-    assert overlay.status_code == 200
-    assert "quota" in overlay.text
+    for asset in ("overlay.js", "quota.js", "agentchat.css"):
+        assert client.get(f"/app/{asset}").status_code == 200, asset
+    assert "quota" in client.get("/app/overlay.js").text
+    # Only the named assets are reachable, so the route cannot be walked.
+    assert client.get("/app/admin.html").status_code == 404
+    assert client.get("/app/../pricing.py").status_code == 404
+
+
+def test_admin_console_is_served_only_to_an_admin(
+    client: TestClient, sign_in: SignIn
+) -> None:
+    console = client.get("/admin", follow_redirects=False)
+    assert console.status_code == 303 and console.headers["location"] == "/login"
+    sign_in("alice")
+    member = client.get("/admin", follow_redirects=False)
+    # A member has no admin API to call, so they go back to the chat.
+    assert member.status_code == 303 and member.headers["location"] == "/"
+    sign_in("admin")
+    page = client.get("/admin")
+    assert page.status_code == 200
+    assert "Add a user" in page.text and "/app/admin.js" in page.text

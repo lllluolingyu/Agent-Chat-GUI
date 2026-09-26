@@ -12,7 +12,7 @@ from .auth import SESSION_TTL
 from .context import SESSION_COOKIE
 from .deps import context_of, current_user, require_admin
 from .domain import User, UserRole
-from .pricing import usd
+from .pricing import ModelPrice, usd
 from .quota import QuotaPolicy, to_micros
 
 
@@ -45,6 +45,17 @@ class QuotaBody(BaseModel):
 class CreditBody(BaseModel):
     amount_usd: str
     note: str = "admin credit"
+
+
+def price_wire(price: ModelPrice) -> dict[str, str]:
+    """A price as strings, so no rate is reshaped by JSON float rounding."""
+
+    return {
+        "input": str(price.input),
+        "cached_input": str(price.cached_input),
+        "cache_write": str(price.cache_write),
+        "output": str(price.output),
+    }
 
 
 def user_wire(user: User) -> dict[str, Any]:
@@ -178,14 +189,37 @@ def router() -> APIRouter:
             "windows": [w.to_wire() for w in context.quota.windows(user_id)],
         }
 
-    @api.get("/admin/usage", dependencies=[Depends(require_admin)])
-    async def usage(request: Request, limit: int = 100) -> dict[str, Any]:
+    @api.get("/admin/prices", dependencies=[Depends(require_admin)])
+    async def prices(request: Request) -> dict[str, Any]:
+        """The price table in force, so an admin can see what is listed.
+
+        Read-only: prices are edited in ``prices.toml`` on the serving machine,
+        which keeps billing rates out of reach of a hijacked browser session.
+        """
         context = context_of(request)
+        table = context.prices
+        return {
+            "path": str(context.settings.prices_path),
+            "fallback": price_wire(table.fallback),
+            "models": [
+                {"model": name, **price_wire(price)}
+                for name, price in sorted(table.models.items())
+            ],
+        }
+
+    @api.get("/admin/usage", dependencies=[Depends(require_admin)])
+    async def usage(
+        request: Request, limit: int = 100, user_id: str | None = None
+    ) -> dict[str, Any]:
+        context = context_of(request)
+        clause = "WHERE l.user_id = ?" if user_id else ""
+        params: tuple[Any, ...] = (user_id,) if user_id else ()
         rows = context.database.db.execute(
-            """SELECT l.*, u.username FROM usage_ledger l
-               JOIN users u ON u.id = l.user_id
-               ORDER BY l.id DESC LIMIT ?""",
-            (max(1, min(limit, 1000)),),
+            f"""SELECT l.*, u.username FROM usage_ledger l
+                JOIN users u ON u.id = l.user_id
+                {clause}
+                ORDER BY l.id DESC LIMIT ?""",
+            (*params, max(1, min(limit, 1000))),
         ).fetchall()
         return {
             "entries": [

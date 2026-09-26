@@ -141,3 +141,66 @@ def test_policy_round_trip_and_validation(tmp_path, prices) -> None:
             to_micros(Decimal("-1"))
     finally:
         database.close()
+
+
+def test_only_a_dated_snapshot_inherits_a_listed_rate() -> None:
+    """A new sibling must be priced deliberately, not inherit a cheap relative."""
+
+    table = PriceTable.parse(PRICES)
+    for snapshot in ("priced-model-20260901", "priced-model-2026-09-01"):
+        _, source = table.cost_micros("codex", snapshot, TokenCounts(input=1))
+        assert source == "listed", snapshot
+    # "priced-model-turbo" starts with a listed id but is a different model.
+    for other in ("priced-model-turbo", "priced-model-2", "priced-model-20269"):
+        _, source = table.cost_micros("codex", other, TokenCounts(input=1))
+        assert source == "fallback", other
+
+
+def test_shipped_table_prices_every_model_it_lists() -> None:
+    """The file the product installs must parse and cover both providers."""
+
+    from agentchat.pricing import DEFAULT_PRICES_FILE
+
+    table = PriceTable.parse(DEFAULT_PRICES_FILE.read_text(encoding="utf-8"))
+    assert len(table.models) > 30
+    for model, price in table.models.items():
+        assert price.input > 0 and price.output > 0, model
+        # A cached or cache-written token is never free: an unpublished rate is
+        # listed at the model's full input rate instead.
+        assert price.cached_input > 0 and price.cache_write > 0, model
+    # Anthropic counts cache reads beside input; OpenAI counts them inside it.
+    claude = table.cost_micros(
+        "claude", "claude-sonnet-5", TokenCounts(input=1_000_000, cached=1_000_000)
+    )
+    codex = table.cost_micros(
+        "codex", "gpt-6-astra", TokenCounts(input=1_000_000, cached=1_000_000)
+    )
+    assert usd(claude[0]) == Decimal("2.200000")  # 1M at $2 + 1M cached at $0.20
+    assert usd(codex[0]) == Decimal("1.000000")  # all 1M was cached, at $1
+
+
+def test_window_reports_when_its_oldest_spend_ages_out(tmp_path, prices) -> None:
+    from agentchat.auth import AuthService
+    from agentchat.db import Database
+
+    database = Database(tmp_path / "quota.db")
+    try:
+        user = AuthService(database.db).create_user("alice", "password123")
+        quota = _service(database, prices)
+        # Nothing counted yet, so there is nothing to age out.
+        assert all(w.resets_at is None for w in quota.windows(user.id))
+        quota.record(user.id, None, "codex", "priced-model", TokenCounts(output=10))
+        for window in quota.windows(user.id):
+            assert window.resets_at is not None
+            hours = (
+                window.resets_at - datetime.now(timezone.utc)
+            ).total_seconds() / 3600
+            assert hours == pytest.approx(window.window_hours, abs=0.1)
+        # A refusal carries the same instant, so the browser can show it.
+        quota.record(
+            user.id, None, "codex", "priced-model", TokenCounts(output=5_000_000)
+        )
+        decision = quota.check(user.id)
+        assert not decision.allowed and decision.retry_at is not None
+    finally:
+        database.close()

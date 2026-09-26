@@ -22,15 +22,28 @@ from fastapi.staticfiles import StaticFiles
 from . import routes_admin, routes_chat
 from .context import SESSION_COOKIE, Context, Settings, default_data_dir
 from .deps import same_origin
+from .domain import UserRole
 
 __all__ = ["create_app", "Settings", "default_data_dir", "SESSION_COOKIE"]
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 _WEB_DIR = Path(__file__).with_name("web")
+# This product's own assets, served under /app/ so they never collide with a
+# future AgentGUI file. Listed explicitly rather than mounted: the directory
+# also holds the admin page, which is served only to an admin.
+_ASSETS = {
+    "overlay.js": "text/javascript",
+    "quota.js": "text/javascript",
+    "admin.js": "text/javascript",
+    "agentchat.css": "text/css",
+}
 _MAIN_SCRIPT = '<script type="module" src="/js/main.js"></script>'
 # Injected *before* the app module: the overlay wraps WebSocket, so it has to
 # run first. Module scripts execute in document order.
-_OVERLAY = '<script type="module" src="/overlay.js"></script>\n  ' + _MAIN_SCRIPT
+_OVERLAY = (
+    '<link rel="stylesheet" href="/app/agentchat.css" />\n  '
+    '<script type="module" src="/app/overlay.js"></script>\n  ' + _MAIN_SCRIPT
+)
 
 _LOGIN_PAGE = """<!doctype html>
 <html lang="en">
@@ -142,12 +155,29 @@ def create_app(
     async def login_page() -> str:
         return _LOGIN_PAGE
 
-    @app.get("/overlay.js")
-    async def overlay() -> FileResponse:
+    @app.get("/app/{asset}")
+    async def product_asset(asset: str) -> Response:
+        media_type = _ASSETS.get(asset)
+        if media_type is None:
+            return JSONResponse({"detail": "unknown asset"}, 404)
         return FileResponse(
-            _WEB_DIR / "overlay.js",
-            media_type="text/javascript",
+            _WEB_DIR / asset,
+            media_type=media_type,
             headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/admin", response_class=HTMLResponse)
+    async def admin_page(request: Request) -> Response:
+        user = context.auth.authenticate(request.cookies.get(SESSION_COOKIE))
+        if user is None:
+            return Response(status_code=303, headers={"Location": "/login"})
+        # A member has no admin API to call, so send them back to the chat
+        # rather than serving a console whose every request would fail.
+        if user.role is not UserRole.ADMIN:
+            return Response(status_code=303, headers={"Location": "/"})
+        return HTMLResponse(
+            (_WEB_DIR / "admin.html").read_text(encoding="utf-8"),
+            headers={"Referrer-Policy": "no-referrer"},
         )
 
     app.include_router(routes_admin.router())

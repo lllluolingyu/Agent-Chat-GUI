@@ -54,6 +54,15 @@ an agent's own estimate. Each backend is priced in its own counter convention
 input, Codex and LingCore report cached input inside it. An unlisted model is
 billed at the fallback price and flagged in the ledger rather than running free.
 
+`agentchat/prices.default.toml` seeds the operator's copy with current published
+rates. Matching is exact, with one deliberate exception: a dated snapshot of a
+listed id (`claude-opus-5-5-20260901`, `gpt-4.1-2025-04-14`, Vertex's `@` form)
+resolves to that id's price. Plain prefix matching was rejected because it would
+bill an unlisted new model at a cheaper relative's rate and mark it `listed`,
+hiding the gap; falling to `[fallback]` surfaces it instead. Where a provider
+publishes no cached-input or cache-write rate, the table carries the model's full
+input rate there, so a cached token is billed as ordinary input rather than free.
+
 Backends that report session running totals (Claude's `model_usage`, Codex's
 thread totals) are billed on the increase over a stored per-(session, model)
 snapshot, so a reconnect, a resumed session, or a repeated notification charges
@@ -85,6 +94,13 @@ checks pass.
    because this product owns authentication and routing.
 4. The price table, usage ledger, rolling-window checks, and admin quota
    editing plus credits.
+5. The browser surfaces this product adds: a quota meter per window in the chat
+   topbar, and an admin console at `/admin` for accounts, limits, credits, and
+   the ledger. Both are served from `agentchat/web/` under `/app/`, share one
+   meter module, and reference only AgentGUI's design tokens, so an upstream
+   palette or theme change carries over untouched. The console is a page of this
+   app rather than a route of AgentGUI's, because AgentGUI has no notion of
+   accounts to hang it from.
 
 ## Still open
 
@@ -92,6 +108,8 @@ checks pass.
   trusted group.
 - A team or family budget shared across users, above the per-user limits.
 - Audit events for admin actions, and a browser view of a user's own ledger.
+- Price edits still require a restart, and the admin console can only read the
+  table; editing rates in the browser would put billing behind a session cookie.
 - LingCore turns are billed only when its profile's provider returns usage;
   a provider that reports none yields no charge.
 

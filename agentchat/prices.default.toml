@@ -1,0 +1,263 @@
+# Agent Chat token prices, in USD per million tokens.
+#
+# The copy under the data directory, beside agentchat.db, is the table in force.
+# It is seeded from the packaged default on first run and never overwritten after
+# that, so edit that copy and restart the server to apply new rates.
+#
+# Every model a user can select should be listed. An unlisted model is billed at
+# [fallback] and marked "fallback" in the ledger, so a quota still holds and the
+# admin console shows which model needs a rate. Only an exact id or a dated
+# snapshot of one (claude-opus-5-5-20260901, gpt-4.1-2025-04-14) counts as
+# listed; a new sibling such as a future gpt-5.7 falls to [fallback] rather than
+# quietly inheriting a cheaper relative's rate.
+#
+# Rates below are Anthropic's and OpenAI's published standard-tier, short-context
+# rates as of 2026-09-27. Four things this table cannot express, each of which
+# under-bills where it applies:
+#   - Long context. GPT-6 and GPT-5.6 charge 2x input and 1.5x output above a
+#     context threshold OpenAI does not publish for those models.
+#   - Fast mode / priority processing is about 2x standard.
+#   - FedRAMP and data-residency endpoints add 10%.
+#   - Batch and Flex are about half standard, so those over-bill instead.
+#
+# Where a provider publishes no cached-input or cache-write rate, the value here
+# is the model's full input rate: a cached or cache-written token is then billed
+# as ordinary input rather than as free. Those rows are marked "# no published
+# cache rate".
+#
+# Deliberately absent: "-latest" aliases. OpenAI repoints them to newer models,
+# which would silently change what a user is charged.
+
+[fallback]
+input = 5.0
+cached_input = 0.5
+cache_write = 6.25
+output = 25.0
+
+# --- Anthropic (cache reads and writes are counted beside input) --------------
+
+[models."claude-opus-5-5"]
+input = 4.0
+cached_input = 0.2
+cache_write = 5.0
+output = 20.0
+
+[models."claude-opus-5"]
+input = 5.0
+cached_input = 0.5
+cache_write = 6.25
+output = 25.0
+
+[models."claude-opus-4-8"]
+input = 5.0
+cached_input = 0.5
+cache_write = 6.25
+output = 25.0
+
+[models."claude-sonnet-5"]
+input = 2.0
+cached_input = 0.2
+cache_write = 2.5
+output = 10.0
+
+[models."claude-sonnet-4-6"]
+input = 3.0
+cached_input = 0.3
+cache_write = 3.75
+output = 15.0
+
+[models."claude-haiku-4-5"]
+input = 1.0
+cached_input = 0.1
+cache_write = 1.25
+output = 5.0
+
+[models."claude-fable-5-1"]
+input = 10.0
+cached_input = 0.25
+cache_write = 12.5
+output = 50.0
+
+# --- OpenAI (cached input is counted inside input) ----------------------------
+
+[models."gpt-6-astra"]
+input = 10.0
+cached_input = 1.0
+cache_write = 12.5
+output = 50.0
+
+[models."gpt-6-sol"]
+input = 2.0
+cached_input = 0.2
+cache_write = 2.5
+output = 10.0
+
+[models."gpt-6-luna"]
+input = 0.1
+cached_input = 0.01
+cache_write = 0.125
+output = 0.5
+
+# gpt-5.6-sol's rate is promotional, guaranteed only through 2026-11-21.
+[models."gpt-5.6-sol"]
+input = 4.0
+cached_input = 0.4
+cache_write = 5.0
+output = 20.0
+
+[models."gpt-5.6-terra"]
+input = 2.0
+cached_input = 0.2
+cache_write = 2.5
+output = 12.0
+
+[models."gpt-5.6-luna"]
+input = 0.2
+cached_input = 0.02
+cache_write = 0.25
+output = 1.2
+
+[models."gpt-5.6-cyber"]
+input = 12.5
+cached_input = 1.25
+cache_write = 12.5  # no published cache rate
+output = 75.0
+
+[models."gpt-5.5"]
+input = 5.0
+cached_input = 0.5
+cache_write = 5.0  # no published cache rate
+output = 30.0
+
+[models."gpt-5.5-cyber"]
+input = 12.5
+cached_input = 1.25
+cache_write = 12.5  # no published cache rate
+output = 75.0
+
+[models."gpt-5.5-pro"]
+input = 30.0
+cached_input = 30.0  # no published cache rate
+cache_write = 30.0  # no published cache rate
+output = 180.0
+
+[models."gpt-5.4"]
+input = 2.5
+cached_input = 0.25
+cache_write = 2.5  # no published cache rate
+output = 15.0
+
+[models."gpt-5.4-mini"]
+input = 0.75
+cached_input = 0.075
+cache_write = 0.75  # no published cache rate
+output = 4.5
+
+[models."gpt-5.4-nano"]
+input = 0.2
+cached_input = 0.02
+cache_write = 0.2  # no published cache rate
+output = 1.25
+
+[models."gpt-5.4-pro"]
+input = 30.0
+cached_input = 30.0  # no published cache rate
+cache_write = 30.0  # no published cache rate
+output = 180.0
+
+# The only Codex model OpenAI still lists. Fast mode is double these rates.
+[models."gpt-5.3-codex"]
+input = 1.75
+cached_input = 0.175
+cache_write = 1.75  # no published cache rate
+output = 14.0
+
+[models."gpt-5.2"]
+input = 1.75
+cached_input = 0.175
+cache_write = 1.75  # no published cache rate
+output = 14.0
+
+[models."gpt-5.2-pro"]
+input = 21.0
+cached_input = 21.0  # no published cache rate
+cache_write = 21.0  # no published cache rate
+output = 168.0
+
+[models."gpt-5.1"]
+input = 1.25
+cached_input = 0.125
+cache_write = 1.25  # no published cache rate
+output = 10.0
+
+[models."gpt-5"]
+input = 1.25
+cached_input = 0.125
+cache_write = 1.25  # no published cache rate
+output = 10.0
+
+[models."gpt-5-mini"]
+input = 0.25
+cached_input = 0.025
+cache_write = 0.25  # no published cache rate
+output = 2.0
+
+[models."gpt-5-nano"]
+input = 0.05
+cached_input = 0.005
+cache_write = 0.05  # no published cache rate
+output = 0.4
+
+[models."gpt-5-pro"]
+input = 15.0
+cached_input = 15.0  # no published cache rate
+cache_write = 15.0  # no published cache rate
+output = 120.0
+
+[models."gpt-4.1"]
+input = 2.0
+cached_input = 0.5
+cache_write = 2.0  # no published cache rate
+output = 8.0
+
+[models."gpt-4.1-mini"]
+input = 0.4
+cached_input = 0.1
+cache_write = 0.4  # no published cache rate
+output = 1.6
+
+[models."gpt-4.1-nano"]
+input = 0.1
+cached_input = 0.025
+cache_write = 0.1  # no published cache rate
+output = 0.4
+
+[models."gpt-4o"]
+input = 2.5
+cached_input = 1.25
+cache_write = 2.5  # no published cache rate
+output = 10.0
+
+[models."gpt-4o-mini"]
+input = 0.15
+cached_input = 0.075
+cache_write = 0.15  # no published cache rate
+output = 0.6
+
+[models."o3"]
+input = 2.0
+cached_input = 0.5
+cache_write = 2.0  # no published cache rate
+output = 8.0
+
+[models."o3-mini"]
+input = 1.1
+cached_input = 0.55
+cache_write = 1.1  # no published cache rate
+output = 4.4
+
+[models."o4-mini"]
+input = 1.1
+cached_input = 0.275
+cache_write = 1.1  # no published cache rate
+output = 4.4

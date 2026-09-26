@@ -13,6 +13,7 @@ input inside it. ``reasoning`` is always part of ``output``.
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
@@ -25,33 +26,14 @@ PER_MTOK = Decimal("1000000")
 # True when the reported ``cached`` count is already part of ``input``.
 CACHED_INSIDE_INPUT = {"claude": False, "codex": True, "lingcore": True}
 
-DEFAULT_PRICES = """# Agent Chat token prices, in USD per million tokens.
-# Every model a user can select should be listed. An unlisted model is billed
-# at [fallback] and flagged in the ledger so quotas still hold.
+# The seed table, copied to the data directory on first run and edited there.
+DEFAULT_PRICES_FILE = Path(__file__).with_name("prices.default.toml")
 
-[fallback]
-input = 5.0
-cached_input = 0.5
-cache_write = 6.25
-output = 25.0
-
-[models."claude-opus-5-5"]
-input = 15.0
-cached_input = 1.5
-cache_write = 18.75
-output = 75.0
-
-[models."claude-sonnet-5"]
-input = 3.0
-cached_input = 0.3
-cache_write = 3.75
-output = 15.0
-
-[models."gpt-5.3-codex"]
-input = 1.25
-cached_input = 0.125
-output = 10.0
-"""
+# A provider may serve a dated snapshot of a listed alias (claude-opus-5-5-20260901,
+# gpt-4.1-2025-04-14, or Vertex's claude-opus-5@20260901). Only that suffix makes
+# an unlisted id resolve to a listed price: a new sibling of a listed model must
+# be priced deliberately rather than inherit a cheaper relative's rate.
+_SNAPSHOT_SUFFIX = re.compile(r"^[-@](\d{8}|\d{4}-\d{2}-\d{2})$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +92,9 @@ class PriceTable:
         target = Path(path)
         if not target.exists():
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(DEFAULT_PRICES, encoding="utf-8")
+            target.write_text(
+                DEFAULT_PRICES_FILE.read_text(encoding="utf-8"), encoding="utf-8"
+            )
         return cls.parse(target.read_text(encoding="utf-8"))
 
     @classmethod
@@ -133,12 +117,13 @@ class PriceTable:
         listed = self.models.get(model)
         if listed is not None:
             return listed, "listed"
-        # Providers serve dated snapshots of an alias (claude-opus-5-5-20260901);
-        # bill the longest listed id the served name starts with.
-        prefixes = [name for name in self.models if model.startswith(name)]
-        if prefixes:
-            best = max(prefixes, key=len)
-            return self.models[best], "listed"
+        snapshots = [
+            name
+            for name in self.models
+            if model.startswith(name) and _SNAPSHOT_SUFFIX.match(model[len(name) :])
+        ]
+        if snapshots:
+            return self.models[max(snapshots, key=len)], "listed"
         return self.fallback, "fallback"
 
     def cost_micros(
