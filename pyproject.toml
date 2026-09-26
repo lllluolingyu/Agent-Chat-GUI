@@ -1,0 +1,58 @@
+[project]
+name = "agent-chat"
+version = "0.1.0"
+description = "User-managed browser chat for Claude Code, Codex, and LingCore agents"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "lingchat[claude]",
+]
+
+[project.scripts]
+agent-chat = "agentchat.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agentchat"]
+
+# The agent adapters come from LingChat's agentgui package. Both sibling
+# checkouts are declared here because uv does not follow a path dependency's
+# own tool.uv.sources.
+[tool.uv.sources]
+lingchat = { path = "../LingCore/LingChat", editable = true }
+lingcore = { path = "../LingCore", editable = true }
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "mypy>=1.11,<2",
+    "pytest>=8.3,<10",
+    "ruff>=0.8,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["agentchat"]
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+
+# agentgui ships without a py.typed marker; analyze its sources anyway so our
+# adapters are checked against the real types.
+[[tool.mypy.overrides]]
+module = ["agentgui.*", "lingchat.*"]
+follow_untyped_imports = true
