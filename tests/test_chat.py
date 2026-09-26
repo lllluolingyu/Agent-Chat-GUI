@@ -53,6 +53,37 @@ def test_workspace_is_resolved_under_the_user_root_not_a_client_path(
     assert client.get("/api/models").json()["recent_workspaces"] == ["project-a"]
 
 
+def test_only_the_published_autonomy_levels_are_accepted(
+    client: TestClient, sign_in: SignIn
+) -> None:
+    """The retired levels must be refused, and refused as a 422.
+
+    This route does not catch the store's ``ValueError``, so a level this layer
+    accepts and the store rejects would surface as a 500. Sharing one definition
+    with agentgui is what prevents that; this pins it.
+    """
+
+    sign_in("alice")
+    levels = client.get("/api/models").json()["autonomy_levels"]
+    assert levels == ["ask", "edit"]
+    for level in levels:
+        response = client.post(
+            "/api/sessions",
+            json={"model_id": "test-model", "workspace": "default", "autonomy": level},
+        )
+        assert response.status_code == 200, level
+    for retired in ("read-only", "auto-edit", "bypass"):
+        response = client.post(
+            "/api/sessions",
+            json={
+                "model_id": "test-model",
+                "workspace": "default",
+                "autonomy": retired,
+            },
+        )
+        assert response.status_code == 422, retired
+
+
 def test_sessions_are_private_to_their_owner(
     client: TestClient, sign_in: SignIn
 ) -> None:

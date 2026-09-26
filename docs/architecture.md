@@ -83,6 +83,23 @@ provider proxy, or arbitrary tool execution endpoint. Backend adapters are
 invoked by the chat service after ownership, backend availability, and quota
 checks pass.
 
+A session picks one of two autonomy levels, defined by what the agent may do
+*without* being asked. Under `ask` it reads freely and every write or command
+raises an approval the user grants inline; under `edit` writes inside the
+workspace are silent and leaving the workspace still asks. The levels and their
+per-backend meaning live in `agentgui.store` (`Autonomy`, `AUTONOMY_LEVELS`) and
+are imported here rather than restated, because a level this product accepts and
+the store rejects would surface as a 500 instead of a 422.
+
+The mapping is not uniform, because the backends differ in what they can
+enforce. Claude uses permission modes (`default`, `acceptEdits`) and Codex a
+sandbox (`read-only`, `workspace-write`) with approvals always on request. For
+LingCore, `ask` is a tool ceiling rather than a per-write prompt: its
+confirmation hook is reachable only from shell, skill gating, and subagent
+spawn, never from `write_file`, so withholding the write tools is the only way
+that backend can promise nothing is written without consent. An approved shell
+command is its escalation path.
+
 ## Delivered slices
 
 1. SQLite migrations plus password and cookie-session authentication.

@@ -9,6 +9,7 @@ from typing import Any
 from agentgui.attachments import content_disposition, display_turns
 from agentgui.diagnostics import doctor, live_models
 from agentgui.protocol import ApprovalRequest, Decision, frame
+from agentgui.store import AUTONOMY_LEVELS, Autonomy
 from fastapi import (
     APIRouter,
     Depends,
@@ -26,14 +27,15 @@ from .deps import context_of, current_user, owned_session, require_admin, same_o
 from .domain import User
 from .workspaces import DEFAULT_LABEL, WorkspaceError
 
-_AUTONOMY = {"read-only", "ask", "auto-edit"}
-
 
 class SessionCreate(BaseModel):
     model_id: str
     # A workspace *name*, resolved under the caller's own root. Never a path.
     workspace: str = DEFAULT_LABEL
-    autonomy: str = "ask"
+    # Imported rather than restated: a copy of the level set here would accept a
+    # value the store then rejects with a ValueError this route does not catch,
+    # turning a 422 into a 500. Typing it means pydantic refuses it first.
+    autonomy: Autonomy = "ask"
 
 
 class RenameBody(BaseModel):
@@ -65,7 +67,7 @@ def router() -> APIRouter:
             # Workspace *names*; the server maps them to this user's own tree.
             "workspace": labels[0],
             "recent_workspaces": labels,
-            "autonomy_levels": sorted(_AUTONOMY),
+            "autonomy_levels": sorted(AUTONOMY_LEVELS),
         }
 
     @api.get("/doctor", dependencies=[Depends(require_admin)])
@@ -105,8 +107,8 @@ def router() -> APIRouter:
         entry = context.catalog.entries.get(body.model_id)
         if entry is None:
             raise HTTPException(422, "unknown model; select an entry from /api/models")
-        if body.autonomy not in _AUTONOMY:
-            raise HTTPException(422, "invalid autonomy level")
+        # No autonomy check here: the typed field above already 422s an unknown
+        # level, and it cannot disagree with the store the way a local copy could.
         try:
             workspace = context.workspaces.path(user.id, body.workspace)
         except WorkspaceError as exc:

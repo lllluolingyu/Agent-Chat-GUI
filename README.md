@@ -98,6 +98,23 @@ Every control there calls an admin-only API that re-checks the caller's role, so
 hiding a control is a convenience and never the access decision. A member who
 reaches `/admin` is sent back to the chat.
 
+## Autonomy
+
+Each session picks one of two levels, which say what the agent may do *without*
+asking:
+
+- **ask** — reads freely; every write or command raises an approval you grant
+  inline, so nothing is refused on your behalf and no mode switch is needed;
+- **edit** — writes inside the workspace happen silently, and stepping outside
+  the workspace still asks.
+
+What that means per backend differs, because the backends enforce different
+things: Claude uses permission modes, Codex a sandbox, and LingCore a tool
+ceiling (it has no per-write approval hook, so under `ask` the write tools are
+withheld and an approved shell command is how the agent acts). Sessions created
+before this split are renamed on first open — the old `read-only` becomes `ask`
+and `auto-edit` becomes `edit`.
+
 ## Users and workspaces
 
 Admins create accounts; there is no public sign-up. Every session has one owner,
