@@ -152,7 +152,11 @@ async function loadUsers() {
   $("users").replaceChildren(...users.map(userRow));
   const picker = $("ledger-user");
   const chosen = picker.value;
-  picker.replaceChildren(el("option", null, "everyone"));
+  const everyone = el("option", null, "everyone");
+  // Without an explicit empty value the option's value is its own text, so
+  // restoring the "" selection below matched nothing and the filter read blank.
+  everyone.value = "";
+  picker.replaceChildren(everyone);
   for (const user of users) {
     const option = el("option", null, user.username);
     option.value = user.id;

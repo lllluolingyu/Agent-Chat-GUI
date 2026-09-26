@@ -119,6 +119,21 @@ command is its escalation path.
    app rather than a route of AgentGUI's, because AgentGUI has no notion of
    accounts to hang it from.
 
+   They also follow AgentGUI's emphasis ladder rather than inventing one: flat
+   backgrounds, a hairline and a short shadow for depth, and blur only where
+   something passes behind a panel. In this product that is the quota panel and
+   nothing else — it hangs over the transcript carrying dollar figures, so it
+   takes the near-opaque `--surface-overlay` fill; an admin card is a section of
+   a flat page and gets neither blur nor shadow.
+
+   The sign-in page and the console also load AgentGUI's stylesheet itself,
+   which is what serves its self-hosted fonts, and repeat the chat page's
+   pre-paint theme read. Neither is behind the session cookie: the stylesheet is
+   public because the sign-in page needs it before anyone is authenticated, and
+   it carries no user data. Both override the shell layout rules that stylesheet
+   sets on `body` for the chat (a viewport-pinned flex row), because each is one
+   document that scrolls.
+
 ## Still open
 
 - Per-user OS isolation (containers or sandboxes) before opening this beyond a

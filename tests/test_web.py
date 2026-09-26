@@ -13,6 +13,17 @@ def test_login_page_is_public_and_app_shell_requires_a_session(
     assert client.get("/", follow_redirects=False).status_code == 303
 
 
+def test_login_page_styling_is_reachable_before_signing_in(
+    client: TestClient,
+) -> None:
+    """It borrows AgentGUI's tokens and fonts, so both must be public."""
+
+    page = client.get("/login")
+    assert "/style.css" in page.text and "/app/agentchat.css" in page.text
+    for asset in ("/style.css", "/app/agentchat.css"):
+        assert client.get(asset).status_code == 200, asset
+
+
 def test_signed_in_page_loads_the_overlay_before_the_app_module(
     client: TestClient, sign_in: SignIn
 ) -> None:

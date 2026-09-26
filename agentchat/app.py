@@ -50,19 +50,44 @@ _LOGIN_PAGE = """<!doctype html>
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sign in · Agent Chat</title>
+  <!-- AgentGUI's tokens and self-hosted fonts, so the sign-in page is the same
+       material as the chat behind it rather than a second hand-rolled palette. -->
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/app/agentchat.css" />
   <style>
-    body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;
-         background:#0f1115;color:#e7e9ee}
-    form{display:grid;gap:.75rem;width:min(22rem,90vw);padding:2rem;border-radius:1rem;
-         background:#171a21;box-shadow:0 1px 0 #262b36 inset}
-    h1{font-size:1.25rem;margin:0 0 .5rem}
-    label{display:grid;gap:.35rem;font-size:.85rem;color:#9aa3b2}
-    input{font:inherit;padding:.55rem .7rem;border-radius:.5rem;border:1px solid #2b313d;
-          background:#0f1115;color:inherit}
-    button{font:inherit;padding:.6rem;border-radius:.5rem;border:0;background:#6366f1;color:#fff;
-           cursor:pointer}
-    p[role=alert]{margin:0;color:#f87171;font-size:.85rem;min-height:1.2em}
+    /* style.css lays the chat shell out as a flex row pinned to the viewport;
+       this page is one centred card on a document that may scroll. */
+    body{display:grid;place-items:center;height:auto;min-height:100vh;min-height:100dvh;
+         overflow:visible}
+    /* Solid and hairlined, like the composer it will hand over to: there is
+       nothing behind this card to blur. */
+    form{display:grid;gap:.85rem;width:min(23rem,90vw);padding:2rem;
+         border:1px solid var(--border-strong);border-radius:var(--radius-xl);
+         background:var(--surface-input);box-shadow:var(--glass-shadow)}
+    h1{font-family:var(--serif);font-size:1.6rem;font-weight:400;letter-spacing:-.01em;
+       margin:0 0 .35rem}
+    label{display:grid;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--text-2)}
+    input{font:inherit;padding:.6rem .75rem;border-radius:var(--radius-sm);
+          border:1px solid var(--border-strong);background:var(--glass-bg-subtle);color:var(--text)}
+    input:focus-visible{outline:none;border-color:color-mix(in srgb,var(--accent) 50%,var(--border-strong));
+                        box-shadow:var(--ring-focus)}
+    button{font:inherit;font-weight:620;padding:.65rem;border-radius:var(--radius-sm);border:0;
+           background:var(--accent-strong);color:#fff;cursor:pointer}
+    button:hover{filter:brightness(1.06)}
+    p[role=alert]{margin:0;color:var(--err);font-size:.82rem;min-height:1.2em}
   </style>
+  <script>
+    // Same pre-paint theme read as the chat page, so signing in does not flash
+    // dark and then settle light (or the reverse).
+    (() => {
+      try {
+        const t = localStorage.getItem("agentgui-theme");
+        if (t === "light" || (t === null && matchMedia("(prefers-color-scheme: light)").matches)) {
+          document.documentElement.dataset.theme = "light";
+        }
+      } catch { /* storage may be unavailable; the default theme is fine */ }
+    })();
+  </script>
 </head>
 <body>
   <form id="login">

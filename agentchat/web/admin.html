@@ -7,6 +7,19 @@
   <!-- AgentGUI's design tokens, then this product's own components. -->
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/app/agentchat.css" />
+  <script>
+    // Match the chat page's theme before first paint; without this the console
+    // opens dark for a light-theme user and then never corrects itself, since
+    // nothing on this page toggles the theme.
+    (() => {
+      try {
+        const t = localStorage.getItem("agentgui-theme");
+        if (t === "light" || (t === null && matchMedia("(prefers-color-scheme: light)").matches)) {
+          document.documentElement.dataset.theme = "light";
+        }
+      } catch { /* storage may be unavailable; the default theme is fine */ }
+    })();
+  </script>
 </head>
 <body class="admin-body">
   <main class="admin-shell">

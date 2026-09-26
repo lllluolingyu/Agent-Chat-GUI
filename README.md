@@ -20,6 +20,9 @@ conversation frames back to that user.
   operator-owned price table shipped with current Claude, GPT, and Codex rates;
 - an admin console at `/admin` for accounts, quota limits, credits, and the
   charge ledger, and a quota meter in the chat topbar for everyone;
+- one look across all three pages: the sign-in page and the admin console load
+  AgentGUI's stylesheet and self-hosted fonts and reference only its tokens, so
+  they follow the chat's theme rather than carrying a second palette;
 - the boundaries and trust model in [`docs/architecture.md`](docs/architecture.md).
 
 ## Install and run

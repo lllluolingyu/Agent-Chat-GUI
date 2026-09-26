@@ -1,6 +1,11 @@
 /* Agent Chat product styles: the quota meters injected into AgentGUI's topbar,
  * and the admin console page. Only AgentGUI's design tokens are referenced, so
- * both themes and any upstream palette change carry over untouched. */
+ * both themes and any upstream palette change carry over untouched.
+ *
+ * These surfaces follow AgentGUI's emphasis ladder, which is documented at the
+ * top of its style.css: flat backgrounds, depth stated by a hairline and a
+ * short shadow, and blur reserved for what genuinely floats over content. Here
+ * that is the quota panel and nothing else. */
 
 /* --- quota chip + panel ---------------------------------------------------- */
 
@@ -9,7 +14,7 @@
   align-items: center;
   gap: 7px;
   padding: 4px 10px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--glass-bg);
   color: var(--text-2);
@@ -31,16 +36,15 @@
   display: grid;
   gap: 14px;
   padding: 16px;
-  border: 1px solid var(--glass-border-strong);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  /* Opaque, unlike AgentGUI's glass panels: this one floats over the
-   * transcript and carries numbers, and a dollar figure with sentences
-   * bleeding through it is unreadable. The elevated tint is laid over the
-   * solid fallback (upstream's own layering idiom) so the theme still shows
-   * through in both palettes without any transparency surviving. */
-  background:
-    linear-gradient(var(--surface-elevated), var(--surface-elevated)),
-    var(--surface-fallback);
+  /* One of the few panels that really floats: it hangs over the transcript and
+   * carries dollar figures, so it takes upstream's overlay fill — blurred, but
+   * near-opaque, because a number with sentences bleeding through it is not a
+   * number you can act on. */
+  background: var(--surface-overlay);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.42);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.42);
   box-shadow: var(--glass-shadow);
   text-align: left;
 }
@@ -79,31 +83,61 @@
 
 /* --- admin console -------------------------------------------------------- */
 
-.admin-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); }
+/* The console is a page of this app, so it gets the chat's own ambient wash
+ * rather than a flat fill. `display:block` undoes style.css's flex chat shell,
+ * which would otherwise stretch the shell into a column. */
+.admin-body {
+  display: block;
+  margin: 0;
+  /* style.css pins the chat shell to the viewport; a document that scrolls
+   * needs that released, or the wash stops at the fold. */
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible;
+  color: var(--text);
+  font-family: var(--sans);
+}
 .admin-shell { width: min(68rem, 94vw); margin: 0 auto; padding: 28px 0 64px; display: grid; gap: 22px; }
 .admin-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.admin-top h1 { margin: 0; font-size: 20px; }
+.admin-top h1 { margin: 0; font-family: var(--serif); font-size: 24px; font-weight: 400; letter-spacing: -0.01em; }
 .admin-top .spacer { flex: 1; }
 
+/* A card here is a section of one flat page, not a floating object: a fill one
+ * step off the background and a hairline. Nothing scrolls under it, so it gets
+ * no blur and no shadow. */
 .card {
   display: grid;
   gap: 14px;
   padding: 20px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-elevated);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
 }
-.card > h2 { margin: 0; font-size: 15px; }
+.card > h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
 .card > p { margin: 0; font-size: 12px; color: var(--muted-solid); line-height: 1.55; }
 
-.field { display: grid; gap: 5px; font-size: 12px; color: var(--text-2); }
-.field input, .field select {
+.field { display: grid; gap: 5px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+/* The role picker in the table has no .field wrapper, so it is included here:
+ * an unstyled native select renders as a system-white box on a warm card. */
+.field input,
+.field select,
+table.grid select {
   font: inherit;
+  font-weight: 400;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--bg);
+  background: var(--glass-bg-subtle);
   color: var(--text);
+}
+table.grid select { padding: 5px 8px; font-size: 12px; }
+.field input:focus-visible,
+.field select:focus-visible,
+table.grid select:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-strong));
+  box-shadow: var(--ring-focus);
 }
 .field-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
 .field-row .field { flex: 1 1 8rem; min-width: 7rem; }
@@ -115,7 +149,7 @@ table.grid tbody tr:hover { background: var(--glass-bg-subtle); }
 table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 table.grid .meter { min-width: 11rem; }
 
-.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--glass-border); color: var(--text-2); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: var(--text-2); }
 .tag[data-kind="admin"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .tag[data-kind="disabled"] { color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); }
 .tag[data-kind="fallback"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
@@ -136,13 +170,15 @@ table.grid .meter { min-width: 11rem; }
   width: min(30rem, 92vw);
   padding: 22px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface-fallback);
   color: var(--text);
   font-family: var(--sans);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-pop);
 }
-.app-dialog::backdrop { background: rgba(4, 6, 12, 0.58); }
+/* Tokenized: the old literal was a cool near-black, which showed as a blue cast
+ * over a warm page. */
+.app-dialog::backdrop { background: var(--backdrop); }
 .app-dialog form { display: grid; gap: 14px; }
 .app-dialog h2 { margin: 0; font-size: 16px; }
 /* :not(.notice) so this never outranks the error colour on the save notice. */
