@@ -1,0 +1,12 @@
+# Install with
+#   systemctl --user link "$PWD/deploy/agent-chat-backup.service"
+#   systemctl --user enable --now "$PWD/deploy/agent-chat-backup.timer"
+[Unit]
+Description=Nightly Agent Chat database backup
+
+[Timer]
+OnCalendar=*-*-* 03:17
+Persistent=true
+
+[Install]
+WantedBy=timers.target

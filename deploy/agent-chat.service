@@ -1,0 +1,21 @@
+# systemd user unit for Agent Chat. Install from the checkout with
+#   systemctl --user enable --now "$PWD/deploy/agent-chat.service"
+# which links this file, so a pulled change applies after daemon-reload.
+# Edit WorkingDirectory if the checkout is not ~/Agent-Chat-GUI.
+[Unit]
+Description=Agent Chat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/Agent-Chat-GUI
+# The backends start the claude and codex CLIs, so both must be on PATH.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=AGENT_CHAT_ARGS=
+EnvironmentFile=-%h/.config/agent-chat/env
+ExecStart=%h/Agent-Chat-GUI/.venv/bin/agent-chat $AGENT_CHAT_ARGS
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

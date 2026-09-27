@@ -1,0 +1,8 @@
+# Run by agent-chat-backup.timer; see deploy/backup.sh.
+[Unit]
+Description=Back up the Agent Chat database
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/agent-chat/env
+ExecStart=%h/Agent-Chat-GUI/deploy/backup.sh nightly

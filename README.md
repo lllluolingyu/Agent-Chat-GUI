@@ -49,7 +49,10 @@ Then open `http://127.0.0.1:8000/` and sign in. State lives in
 `~/.local/state/agent-chat/`: `agentchat.db`, `prices.toml`, and `workspaces/`.
 Useful flags: `--data-dir`, `--workspace-root`, `--config` (a models.toml
 catalog), `--default-budget-usd`, `--default-burst-usd`, `--host`, `--port`,
-`--allow-remote`.
+`--allow-remote`. `AGENT_CHAT_DATA_DIR` sets the data directory's default.
+
+To run it on a server and update it from pushed commits, see
+[`docs/deploy.md`](docs/deploy.md).
 
 Provider credentials stay on the server host: the backends use the installed
 `claude` and `codex` CLIs and the profiles named in the catalog. No key is ever

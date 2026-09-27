@@ -29,6 +29,10 @@ SESSION_COOKIE = "agentchat_session"
 
 
 def default_data_dir() -> Path:
+    # deploy/backup.sh reads the same variable, so one setting points the
+    # server and its backups at the same database.
+    if configured := os.environ.get("AGENT_CHAT_DATA_DIR"):
+        return Path(configured).expanduser()
     return (
         Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
         / "agent-chat"
