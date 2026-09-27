@@ -37,6 +37,24 @@ def test_anonymous_callers_reach_nothing(client: TestClient) -> None:
     assert index.status_code == 303 and index.headers["location"] == "/login"
 
 
+def test_model_menu_does_not_wait_for_live_discovery(
+    client: TestClient, sign_in: SignIn, monkeypatch: Any
+) -> None:
+    calls = []
+
+    async def discover() -> tuple[list, None]:
+        calls.append(1)
+        return [], None
+
+    monkeypatch.setattr("agentchat.routes_chat.live_models", discover)
+    sign_in("alice")
+    quick = client.get("/api/models?live=false").json()
+    assert [m["id"] for m in quick["models"]] == ["test-model"] and not calls
+    client.get("/api/models")
+    client.get("/api/models")
+    assert len(calls) == 1
+
+
 def test_workspace_is_resolved_under_the_user_root_not_a_client_path(
     client: TestClient, sign_in: SignIn, tmp_path
 ) -> None:

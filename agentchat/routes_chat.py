@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 from pathlib import Path
 from typing import Any
@@ -49,17 +50,23 @@ class ForkBody(BaseModel):
 def router() -> APIRouter:
     api = APIRouter(prefix="/api")
     models_state: dict[str, Any] = {"loaded": False, "notice": None}
+    models_lock = asyncio.Lock()
 
     @api.get("/models")
     async def models(
-        request: Request, user: User = Depends(current_user)
+        request: Request, live: bool = True, user: User = Depends(current_user)
     ) -> dict[str, Any]:
         context = context_of(request)
-        if not models_state["loaded"]:
-            discovered, notice = await live_models()
-            for entry in discovered:
-                context.catalog.entries.setdefault(entry.id, entry)
-            models_state.update(loaded=True, notice=notice)
+        # The page asks with live=false first so the menu fills at once, then
+        # again for the discovered models; discovery spawns a CLI and can take
+        # seconds, so it runs once, behind a lock, and only when asked for.
+        if live and not models_state["loaded"]:
+            async with models_lock:
+                if not models_state["loaded"]:
+                    discovered, notice = await live_models()
+                    for entry in discovered:
+                        context.catalog.entries.setdefault(entry.id, entry)
+                    models_state.update(loaded=True, notice=notice)
         labels = context.workspaces.labels(user.id)
         return {
             "models": [entry.to_wire() for entry in context.catalog.entries.values()],
