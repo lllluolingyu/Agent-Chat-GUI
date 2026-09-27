@@ -62,7 +62,7 @@ sent to a browser or stored in a user record.
 
 Each user has two rolling windows, both in USD, and either may be unlimited:
 
-- a **budget** window, 30 days by default;
+- a **budget** window, 7 days by default;
 - a shorter **burst** window, 5 hours by default.
 
 A turn is checked before it starts. Nothing is reserved, so a turn already

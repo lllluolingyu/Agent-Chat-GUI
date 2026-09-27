@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--default-budget-usd",
         default="20",
-        help="rolling 30-day budget for a user without a policy ('none' to disable)",
+        help="rolling 7-day budget for a user without a policy ('none' to disable)",
     )
     parser.add_argument(
         "--default-burst-usd",

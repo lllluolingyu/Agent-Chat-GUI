@@ -20,8 +20,10 @@ def test_members_cannot_read_or_change_quota_policy(
     )
     assert client.get("/api/admin/usage").status_code == 403
     assert client.get("/api/doctor").status_code == 403
-    # A member still sees their own limits.
-    assert client.get("/api/me/quota").json()["policy"]["budget_usd"] == "20.000000"
+    # A member still sees their own limits, over a weekly budget window.
+    policy = client.get("/api/me/quota").json()["policy"]
+    assert policy["budget_usd"] == "20.000000"
+    assert policy["budget_window_hours"] == 7 * 24
 
 
 def test_admin_sets_a_policy_that_takes_effect_for_the_member(

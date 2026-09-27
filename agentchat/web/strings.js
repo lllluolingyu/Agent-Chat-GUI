@@ -37,7 +37,7 @@ register({
   },
 
   // --- meters ---------------------------------------------------------------
-  "ac.window_budget": { en: "Monthly", zh: "月度" },
+  "ac.window_budget": { en: "Weekly", zh: "每周" },
   "ac.window_burst": { en: "Burst", zh: "短时" },
   "ac.span_days": { en: "{days} days", zh: "{days} 天" },
   "ac.span_hours": { en: "{hours}h", zh: "{hours} 小时" },
@@ -134,7 +134,7 @@ register({
     en: "Leave an amount blank for no limit on that window.",
     zh: "金额留空表示该窗口不设限制。",
   },
-  "ac.budget_usd": { en: "Monthly budget (USD)", zh: "月度预算（美元）" },
+  "ac.budget_usd": { en: "Weekly budget (USD)", zh: "周预算（美元）" },
   "ac.burst_usd": { en: "Burst limit (USD)", zh: "短时上限（美元）" },
   "ac.window_hours": { en: "Window (hours)", zh: "窗口长度（小时）" },
   "ac.unlimited": { en: "unlimited", zh: "无限制" },

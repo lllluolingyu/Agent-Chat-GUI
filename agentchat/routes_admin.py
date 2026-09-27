@@ -13,7 +13,12 @@ from .context import SESSION_COOKIE
 from .deps import context_of, current_user, require_admin
 from .domain import User, UserRole
 from .pricing import ModelPrice, usd
-from .quota import QuotaPolicy, to_micros
+from .quota import (
+    DEFAULT_BUDGET_WINDOW_HOURS,
+    DEFAULT_BURST_WINDOW_HOURS,
+    QuotaPolicy,
+    to_micros,
+)
 
 
 class LoginBody(BaseModel):
@@ -37,9 +42,9 @@ class QuotaBody(BaseModel):
     """Limits in USD. ``None`` means unlimited for that window."""
 
     budget_usd: str | None = None
-    budget_window_hours: int = 720
+    budget_window_hours: int = DEFAULT_BUDGET_WINDOW_HOURS
     burst_usd: str | None = None
-    burst_window_hours: int = 5
+    burst_window_hours: int = DEFAULT_BURST_WINDOW_HOURS
 
 
 class CreditBody(BaseModel):

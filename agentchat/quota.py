@@ -18,8 +18,8 @@ from decimal import Decimal
 
 from .pricing import MICROS, PriceTable, TokenCounts, usd
 
-# Rolling windows, in hours: ~30 days of budget and a shorter burst guard.
-DEFAULT_BUDGET_WINDOW_HOURS = 720
+# Rolling windows, in hours: 7 days of budget and a shorter burst guard.
+DEFAULT_BUDGET_WINDOW_HOURS = 168
 DEFAULT_BURST_WINDOW_HOURS = 5
 
 

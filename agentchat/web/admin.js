@@ -178,7 +178,7 @@ function openQuota(user) {
   const policy = user.quota?.policy || {};
   form.budget_usd.value = policy.budget_usd ?? "";
   form.burst_usd.value = policy.burst_usd ?? "";
-  form.budget_window_hours.value = policy.budget_window_hours ?? 720;
+  form.budget_window_hours.value = policy.budget_window_hours ?? 168;
   form.burst_window_hours.value = policy.burst_window_hours ?? 5;
   $("quota-who").textContent = user.username;
   say("quota-note", "");

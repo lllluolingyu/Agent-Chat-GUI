@@ -38,7 +38,7 @@ cascade when a session is deleted.
 
 ## Quotas
 
-Each user has two rolling windows, both in USD: a budget window (30 days by
+Each user has two rolling windows, both in USD: a budget window (7 days by
 default) and a shorter burst window (5 hours). Either may be unlimited. Amounts
 are stored as micro-dollars so SQLite sums stay exact.
 
