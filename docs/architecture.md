@@ -126,9 +126,23 @@ command is its escalation path.
    takes the near-opaque `--surface-overlay` fill; an admin card is a section of
    a flat page and gets neither blur nor shadow.
 
+   Their interface strings follow AgentGUI's language choice rather than a
+   second one: `agentchat/web/strings.js` registers this product's own strings
+   into `agentgui/web/js/i18n.js`, namespaced `ac.` so an upstream string can
+   never be shadowed. There is one store and one default (Chinese), and the
+   console carries its own toggle so an admin need not go back to the chat to
+   switch. The overlay repaints the chrome it injected itself, because upstream's
+   `data-i18n` pass cannot reach nodes it never rendered; the workspace label is
+   the one node both want, so the overlay drops its binding and keeps it.
+
+   The sign-in page is the deliberate exception: it carries its four strings
+   inline instead of importing that module, because a sign-in form that cannot
+   render until another asset loads is a lockout. It still reads the same stored
+   key, so the language follows the toggle inside the app.
+
    The sign-in page and the console also load AgentGUI's stylesheet itself,
    which is what serves its self-hosted fonts, and repeat the chat page's
-   pre-paint theme read. Neither is behind the session cookie: the stylesheet is
+   pre-paint theme read (and now its language read, which decides the CJK face). Neither is behind the session cookie: the stylesheet is
    public because the sign-in page needs it before anyone is authenticated, and
    it carries no user data. Both override the shell layout rules that stylesheet
    sets on `body` for the chat (a viewport-pinned flex row), because each is one

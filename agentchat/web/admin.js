@@ -4,6 +4,8 @@
 // role server-side; hiding or showing a control in this file is a convenience,
 // never the access decision.
 
+import { LANG_NAMES, apply as applyI18n, nextLang, onLangChange, setLang, t } from "/js/i18n.js";
+import "./strings.js";
 import { meter, money } from "./quota.js";
 
 const $ = (id) => document.getElementById(id);
@@ -22,7 +24,7 @@ async function api(path, options = {}) {
   });
   if (response.status === 401) {
     location.href = "/login";
-    throw new Error("signed out");
+    throw new Error(t("ac.signed_out"));
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -49,7 +51,7 @@ function cell(row, className) {
 function roleSelect(user) {
   const select = el("select");
   for (const role of ["member", "admin"]) {
-    const option = el("option", null, role);
+    const option = el("option", null, t(`ac.role_${role}`));
     option.value = role;
     option.selected = user.role === role;
     select.append(option);
@@ -90,7 +92,7 @@ function userRow(user) {
   const who = cell(row);
   who.append(el("div", null, user.username));
   if (!user.active) {
-    const tag = el("span", "tag", "disabled");
+    const tag = el("span", "tag", t("ac.disabled"));
     tag.dataset.kind = "disabled";
     who.append(tag);
   }
@@ -107,35 +109,35 @@ function userRow(user) {
     stack.append(...windows.map(meter));
     quota.append(stack);
   } else {
-    quota.append(el("span", "empty", "no limits"));
+    quota.append(el("span", "empty", t("ac.no_limits")));
   }
 
   const actions = cell(row);
   const group = el("div", "row-actions");
   group.append(
-    action("Quota…", () => openQuota(user)),
-    action("Credit…", async () => {
+    action(t("ac.action_quota"), () => openQuota(user)),
+    action(t("ac.action_credit"), async () => {
       // A credit is negative spend, so it ages out with the window it lands in.
-      const amount = prompt(`Credit ${user.username} how many USD?`, "5");
+      const amount = prompt(t("ac.credit_prompt", { user: user.username }), "5");
       if (!amount) return;
       await api(`/api/admin/users/${user.id}/credit`, {
         method: "POST",
         body: JSON.stringify({ amount_usd: amount.trim(), note: "admin credit" }),
       });
-      say("users-note", `Credited ${money(amount)} to ${user.username}.`, "ok");
+      say("users-note", t("ac.credited", { amount: money(amount), user: user.username }), "ok");
       await loadUsers();
     }),
-    action("Password…", async () => {
-      const password = prompt(`New password for ${user.username} (min 8 characters)`);
+    action(t("ac.action_password"), async () => {
+      const password = prompt(t("ac.password_prompt", { user: user.username }));
       if (!password) return;
       await api(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         body: JSON.stringify({ password }),
       });
       // Every existing sign-in for that account is dropped server-side.
-      say("users-note", `Password set for ${user.username}; they must sign in again.`, "ok");
+      say("users-note", t("ac.password_set", { user: user.username }), "ok");
     }),
-    action(user.active ? "Disable" : "Enable", async () => {
+    action(t(user.active ? "ac.action_disable" : "ac.action_enable"), async () => {
       await api(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         body: JSON.stringify({ active: !user.active }),
@@ -152,7 +154,7 @@ async function loadUsers() {
   $("users").replaceChildren(...users.map(userRow));
   const picker = $("ledger-user");
   const chosen = picker.value;
-  const everyone = el("option", null, "everyone");
+  const everyone = el("option", null, t("ac.everyone"));
   // Without an explicit empty value the option's value is its own text, so
   // restoring the "" selection below matched nothing and the filter read blank.
   everyone.value = "";
@@ -168,6 +170,7 @@ async function loadUsers() {
 // --- quota dialog -----------------------------------------------------------
 
 let editing = null;
+let currentUser = null; // for the "who am I" chip, which is built here
 
 function openQuota(user) {
   editing = user;
@@ -200,7 +203,7 @@ async function saveQuota() {
   }
   $("quota-dialog").close();
   await loadUsers();
-  say("users-note", `Quota saved for ${editing.username}.`, "ok");
+  say("users-note", t("ac.quota_saved", { user: editing.username }), "ok");
 }
 
 // --- ledger -----------------------------------------------------------------
@@ -216,9 +219,9 @@ async function loadLedger() {
     const model = cell(row);
     model.append(el("div", null, entry.model));
     if (entry.pricing === "fallback") {
-      const tag = el("span", "tag", "fallback");
+      const tag = el("span", "tag", t("ac.fallback"));
       tag.dataset.kind = "fallback";
-      tag.title = "Billed at the fallback rate: this model is not listed in prices.toml";
+      tag.title = t("ac.fallback_title");
       model.append(tag);
     }
     cell(row, "num").textContent = entry.input.toLocaleString();
@@ -231,7 +234,7 @@ async function loadLedger() {
       const row = el("tr");
       const only = cell(row, "empty");
       only.colSpan = 6;
-      only.textContent = "No charges recorded yet.";
+      only.textContent = t("ac.no_charges");
       return row;
     })()]),
   );
@@ -239,13 +242,35 @@ async function loadLedger() {
 
 // --- startup ----------------------------------------------------------------
 
+// The console's own toggle, so an admin does not have to go back to the chat to
+// change language. Every label here is either data-i18n markup or redrawn by the
+// two loaders below.
+function syncLangLabel() {
+  $("lang-label").textContent = LANG_NAMES[nextLang()];
+}
+
 (async function start() {
+  applyI18n();
+  document.title = t("ac.page_title");
+  syncLangLabel();
+  $("lang-toggle").addEventListener("click", () => setLang(nextLang()));
+  onLangChange(() => {
+    applyI18n();
+    document.title = t("ac.page_title");
+    syncLangLabel();
+    if (currentUser) {
+      $("whoami").textContent = t("ac.whoami", { user: currentUser.username });
+    }
+    loadUsers().catch(() => {});
+    loadLedger().catch(() => {});
+  });
   const me = await api("/api/me");
   if (me.role !== "admin") {
     location.href = "/";
     return;
   }
-  $("whoami").textContent = `${me.username} (admin)`;
+  currentUser = me;
+  $("whoami").textContent = t("ac.whoami", { user: me.username });
   $("sign-out").addEventListener("click", async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     location.href = "/login";
@@ -274,7 +299,7 @@ async function loadLedger() {
       return;
     }
     event.target.reset();
-    say("add-note", "User created.", "ok");
+    say("add-note", t("ac.created"), "ok");
     await loadUsers();
   });
 

@@ -23,6 +23,9 @@ conversation frames back to that user.
 - one look across all three pages: the sign-in page and the admin console load
   AgentGUI's stylesheet and self-hosted fonts and reference only its tokens, so
   they follow the chat's theme rather than carrying a second palette;
+- one interface language across those pages, Chinese by default with English a
+  click away, sharing AgentGUI's own language store so the chat, the console and
+  the quota meters never disagree;
 - the boundaries and trust model in [`docs/architecture.md`](docs/architecture.md).
 
 ## Install and run

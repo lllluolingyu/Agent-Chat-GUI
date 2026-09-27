@@ -1,49 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin · Agent Chat</title>
+  <title>管理 · Agent Chat</title>
   <!-- AgentGUI's design tokens, then this product's own components. -->
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/app/agentchat.css" />
   <script>
-    // Match the chat page's theme before first paint; without this the console
-    // opens dark for a light-theme user and then never corrects itself, since
-    // nothing on this page toggles the theme.
+    // Match the chat page's theme and language before first paint; without this
+    // the console opens dark for a light-theme user, or in the wrong script, and
+    // only corrects itself once the module below runs.
     (() => {
       try {
         const t = localStorage.getItem("agentgui-theme");
         if (t === "light" || (t === null && matchMedia("(prefers-color-scheme: light)").matches)) {
           document.documentElement.dataset.theme = "light";
         }
-      } catch { /* storage may be unavailable; the default theme is fine */ }
+        const l = localStorage.getItem("agentgui-lang");
+        if (l === "zh" || l === "en") document.documentElement.lang = l;
+      } catch { /* storage may be unavailable; the defaults are fine */ }
     })();
   </script>
 </head>
 <body class="admin-body">
   <main class="admin-shell">
     <header class="admin-top">
-      <h1>Agent Chat admin</h1>
+      <h1 data-i18n="ac.admin_title">Agent Chat 管理台</h1>
       <span class="spacer"></span>
       <span id="whoami" class="agent-chip"></span>
-      <a class="btn btn-sm" href="/">Back to chat</a>
-      <button id="sign-out" class="btn btn-sm" type="button">Sign out</button>
+      <button id="lang-toggle" class="btn btn-sm" type="button" data-i18n-title="app.lang_toggle" title="切换界面语言">
+        <span id="lang-label">English</span>
+      </button>
+      <a class="btn btn-sm" href="/" data-i18n="ac.back_to_chat">返回对话</a>
+      <button id="sign-out" class="btn btn-sm" type="button" data-i18n="ac.sign_out">退出登录</button>
     </header>
 
     <section class="card" aria-labelledby="people-h">
-      <h2 id="people-h">People</h2>
-      <p>
-        Accounts are created here; there is no sign-up. Each row shows the two
-        rolling windows this member is measured against.
+      <h2 id="people-h" data-i18n="ac.people">成员</h2>
+      <p data-i18n="ac.people_intro">
+        账号只能在这里创建，没有自助注册。每一行显示该成员适用的两个滚动窗口。
       </p>
       <table class="grid">
         <thead>
           <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Quota</th>
-            <th>Actions</th>
+            <th data-i18n="ac.col_user">用户</th>
+            <th data-i18n="ac.col_role">角色</th>
+            <th data-i18n="ac.col_quota">额度</th>
+            <th data-i18n="ac.col_actions">操作</th>
           </tr>
         </thead>
         <tbody id="users"></tbody>
@@ -52,47 +56,49 @@
     </section>
 
     <section class="card" aria-labelledby="add-h">
-      <h2 id="add-h">Add a user</h2>
+      <h2 id="add-h" data-i18n="ac.add_user">添加用户</h2>
       <form id="add-user">
         <div class="field-row">
-          <label class="field">Username
+          <label class="field"><span data-i18n="ac.username">用户名</span>
             <input name="username" autocomplete="off" required
                    pattern="[A-Za-z0-9._-]{1,64}"
-                   title="Letters, digits, dot, dash and underscore" />
+                   data-i18n-title="ac.username_rule"
+                   title="仅限字母、数字、点、短横线与下划线" />
           </label>
-          <label class="field">Password
+          <label class="field"><span data-i18n="ac.password">密码</span>
             <input name="password" type="password" autocomplete="new-password"
                    required minlength="8" />
           </label>
-          <label class="field">Role
+          <label class="field"><span data-i18n="ac.role">角色</span>
             <select name="role">
-              <option value="member" selected>member</option>
-              <option value="admin">admin</option>
+              <option value="member" selected data-i18n="ac.role_member">成员</option>
+              <option value="admin" data-i18n="ac.role_admin">管理员</option>
             </select>
           </label>
-          <button class="btn btn-primary" type="submit">Create</button>
+          <button class="btn btn-primary" type="submit" data-i18n="ac.create">创建</button>
         </div>
       </form>
       <p class="notice" id="add-note"></p>
     </section>
 
     <section class="card" aria-labelledby="ledger-h">
-      <h2 id="ledger-h">Recent charges</h2>
+      <h2 id="ledger-h" data-i18n="ac.charges">近期计费</h2>
       <p>
-        Every charge is priced from token counts by this server. A
-        <span class="tag" data-kind="fallback">fallback</span> row means the model
-        was not listed in <code id="prices-path">prices.toml</code>.
+        <span data-i18n="ac.charges_intro_1">每一笔费用都由本服务器按 token 数计价。标记</span>
+        <span class="tag" data-kind="fallback" data-i18n="ac.fallback">兜底价</span>
+        <span data-i18n="ac.charges_intro_2">的行表示该模型未列在</span>
+        <code id="prices-path">prices.toml</code><span data-i18n="ac.charges_intro_3">中。</span>
       </p>
       <div class="field-row">
-        <label class="field">User
-          <select id="ledger-user"><option value="">everyone</option></select>
+        <label class="field"><span data-i18n="ac.col_user">用户</span>
+          <select id="ledger-user"><option value="">全部用户</option></select>
         </label>
       </div>
       <table class="grid">
         <thead>
           <tr>
-            <th>When</th><th>User</th><th>Model</th>
-            <th class="num">In</th><th class="num">Out</th><th class="num">Cost</th>
+            <th data-i18n="ac.col_when">时间</th><th data-i18n="ac.col_user">用户</th><th data-i18n="ac.col_model">模型</th>
+            <th class="num" data-i18n="ac.col_in">输入</th><th class="num" data-i18n="ac.col_out">输出</th><th class="num" data-i18n="ac.col_cost">费用</th>
           </tr>
         </thead>
         <tbody id="ledger"></tbody>
@@ -102,28 +108,28 @@
 
   <dialog id="quota-dialog" class="app-dialog">
     <form id="quota-form" method="dialog">
-      <h2>Quota for <span id="quota-who"></span></h2>
-      <p>Leave an amount blank for no limit on that window.</p>
+      <h2><span data-i18n="ac.quota_for">额度设置：</span> <span id="quota-who"></span></h2>
+      <p data-i18n="ac.quota_intro">金额留空表示该窗口不设限制。</p>
       <div class="field-row">
-        <label class="field">Monthly budget (USD)
-          <input name="budget_usd" inputmode="decimal" placeholder="unlimited" />
+        <label class="field"><span data-i18n="ac.budget_usd">月度预算（美元）</span>
+          <input name="budget_usd" inputmode="decimal" data-i18n-placeholder="ac.unlimited" placeholder="无限制" />
         </label>
-        <label class="field">Window (hours)
+        <label class="field"><span data-i18n="ac.window_hours">窗口长度（小时）</span>
           <input name="budget_window_hours" inputmode="numeric" value="720" required />
         </label>
       </div>
       <div class="field-row">
-        <label class="field">Burst limit (USD)
-          <input name="burst_usd" inputmode="decimal" placeholder="unlimited" />
+        <label class="field"><span data-i18n="ac.burst_usd">短时上限（美元）</span>
+          <input name="burst_usd" inputmode="decimal" data-i18n-placeholder="ac.unlimited" placeholder="无限制" />
         </label>
-        <label class="field">Window (hours)
+        <label class="field"><span data-i18n="ac.window_hours">窗口长度（小时）</span>
           <input name="burst_window_hours" inputmode="numeric" value="5" required />
         </label>
       </div>
       <p class="notice" id="quota-note"></p>
       <div class="field-row" style="justify-content:flex-end">
-        <button class="btn" type="button" data-close>Cancel</button>
-        <button class="btn btn-primary" id="quota-save" type="button">Save</button>
+        <button class="btn" type="button" data-close data-i18n="ac.cancel">取消</button>
+        <button class="btn btn-primary" id="quota-save" type="button" data-i18n="ac.save">保存</button>
       </div>
     </form>
   </dialog>

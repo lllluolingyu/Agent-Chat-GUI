@@ -33,6 +33,7 @@ _WEB_DIR = Path(__file__).with_name("web")
 # also holds the admin page, which is served only to an admin.
 _ASSETS = {
     "overlay.js": "text/javascript",
+    "strings.js": "text/javascript",
     "quota.js": "text/javascript",
     "admin.js": "text/javascript",
     "agentchat.css": "text/css",
@@ -46,10 +47,10 @@ _OVERLAY = (
 )
 
 _LOGIN_PAGE = """<!doctype html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sign in · Agent Chat</title>
+  <title>登录 · Agent Chat</title>
   <!-- AgentGUI's tokens and self-hosted fonts, so the sign-in page is the same
        material as the chat behind it rather than a second hand-rolled palette. -->
   <link rel="stylesheet" href="/style.css" />
@@ -77,27 +78,49 @@ _LOGIN_PAGE = """<!doctype html>
     p[role=alert]{margin:0;color:var(--err);font-size:.82rem;min-height:1.2em}
   </style>
   <script>
-    // Same pre-paint theme read as the chat page, so signing in does not flash
-    // dark and then settle light (or the reverse).
+    // Same pre-paint theme and language read as the chat page, so signing in does
+    // not flash dark and then settle light (or the reverse), or start in the
+    // wrong script.
     (() => {
       try {
         const t = localStorage.getItem("agentgui-theme");
         if (t === "light" || (t === null && matchMedia("(prefers-color-scheme: light)").matches)) {
           document.documentElement.dataset.theme = "light";
         }
-      } catch { /* storage may be unavailable; the default theme is fine */ }
+        const l = localStorage.getItem("agentgui-lang");
+        if (l === "zh" || l === "en") document.documentElement.lang = l;
+      } catch { /* storage may be unavailable; the defaults are fine */ }
     })();
   </script>
 </head>
 <body>
   <form id="login">
     <h1>Agent Chat</h1>
-    <label>Username <input name="username" autocomplete="username" required autofocus /></label>
-    <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
-    <button type="submit">Sign in</button>
+    <label><span id="l-user">用户名</span> <input name="username" autocomplete="username" required autofocus /></label>
+    <label><span id="l-pass">密码</span> <input name="password" type="password" autocomplete="current-password" required /></label>
+    <button type="submit" id="l-submit">登录</button>
     <p role="alert" id="error"></p>
   </form>
   <script>
+    // This page carries its own four strings rather than importing AgentGUI's
+    // i18n module: a sign-in form that cannot render until another module loads
+    // is a lockout waiting to happen. It reads the same stored choice, so the
+    // language still follows the toggle inside the app.
+    const T = (() => {
+      const S = {
+        user: { en: "Username", zh: "用户名" },
+        pass: { en: "Password", zh: "密码" },
+        submit: { en: "Sign in", zh: "登录" },
+        failed: { en: "Sign-in failed.", zh: "登录失败。" },
+        title: { en: "Sign in · Agent Chat", zh: "登录 · Agent Chat" },
+      };
+      const code = document.documentElement.lang === "en" ? "en" : "zh";
+      return (key) => S[key][code];
+    })();
+    document.title = T("title");
+    document.getElementById("l-user").textContent = T("user");
+    document.getElementById("l-pass").textContent = T("pass");
+    document.getElementById("l-submit").textContent = T("submit");
     document.getElementById("login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -113,7 +136,7 @@ _LOGIN_PAGE = """<!doctype html>
       });
       if (response.ok) { location.href = "/"; return; }
       const data = await response.json().catch(() => ({}));
-      error.textContent = typeof data.detail === "string" ? data.detail : "Sign-in failed.";
+      error.textContent = typeof data.detail === "string" ? data.detail : T("failed");
     });
   </script>
 </body>

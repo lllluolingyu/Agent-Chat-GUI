@@ -5,7 +5,9 @@
 // strings, so nothing is reshaped by float rounding). This module only
 // displays: it never decides whether a turn is allowed.
 
-const LABELS = { budget: "Monthly", burst: "Burst" };
+import { t } from "/js/i18n.js";
+
+const LABEL_KEYS = { budget: "ac.window_budget", burst: "ac.window_burst" };
 
 export function money(amount) {
   const value = Number(amount);
@@ -19,15 +21,15 @@ export function money(amount) {
 }
 
 export function windowName(name) {
-  return LABELS[name] || name;
+  return LABEL_KEYS[name] ? t(LABEL_KEYS[name]) : name;
 }
 
 export function windowSpan(hours) {
   if (hours % 24 === 0 && hours >= 24) {
     const days = hours / 24;
-    return days === 1 ? "24h" : `${days} days`;
+    return days === 1 ? t("ac.span_hours", { hours: 24 }) : t("ac.span_days", { days });
   }
-  return `${hours}h`;
+  return t("ac.span_hours", { hours });
 }
 
 /** Fraction of the limit used, or null when the window is unlimited. */
@@ -50,12 +52,12 @@ export function state(w) {
 export function until(iso) {
   if (!iso) return null;
   const ms = new Date(iso).getTime() - Date.now();
-  if (!Number.isFinite(ms) || ms <= 0) return "any moment";
+  if (!Number.isFinite(ms) || ms <= 0) return t("ac.until_now");
   const minutes = Math.round(ms / 60000);
-  if (minutes < 60) return `in ${minutes} min`;
+  if (minutes < 60) return t("ac.until_minutes", { n: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return `in ${hours}h`;
-  return `in ${Math.round(hours / 24)} days`;
+  if (hours < 48) return t("ac.until_hours", { n: hours });
+  return t("ac.until_days", { n: Math.round(hours / 24) });
 }
 
 function el(tag, className, text) {
@@ -83,8 +85,8 @@ export function meter(w) {
   name.append(el("span", "meter-window", ` · ${windowSpan(w.window_hours)}`));
   const value =
     w.limit_usd == null
-      ? `${money(w.spent_usd)} · no limit`
-      : `${money(w.spent_usd)} of ${money(w.limit_usd)}`;
+      ? t("ac.no_limit", { spent: money(w.spent_usd) })
+      : t("ac.of_limit", { spent: money(w.spent_usd), limit: money(w.limit_usd) });
   head.append(name, el("span", "meter-value", value));
   wrap.append(head, track(w));
 
@@ -93,11 +95,21 @@ export function meter(w) {
   if (over) {
     // Overrun is expected here: a turn already running is never cut off.
     wrap.append(
-      el("span", "meter-note", frees ? `Exhausted · frees up ${frees}` : "Exhausted"),
+      el(
+        "span",
+        "meter-note",
+        frees ? t("ac.exhausted_until", { when: frees }) : t("ac.exhausted"),
+      ),
     );
   } else if (w.remaining_usd != null) {
-    const note = `${money(w.remaining_usd)} left`;
-    wrap.append(el("span", "meter-note", frees ? `${note} · oldest spend ages out ${frees}` : note));
+    const amount = money(w.remaining_usd);
+    wrap.append(
+      el(
+        "span",
+        "meter-note",
+        frees ? t("ac.remaining_until", { amount, when: frees }) : t("ac.remaining", { amount }),
+      ),
+    );
   }
   return wrap;
 }

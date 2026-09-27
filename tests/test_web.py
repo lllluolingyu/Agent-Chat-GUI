@@ -9,7 +9,7 @@ def test_login_page_is_public_and_app_shell_requires_a_session(
     client: TestClient,
 ) -> None:
     page = client.get("/login")
-    assert page.status_code == 200 and "Sign in" in page.text
+    assert page.status_code == 200 and '<form id="login">' in page.text
     assert client.get("/", follow_redirects=False).status_code == 303
 
 
@@ -54,4 +54,7 @@ def test_admin_console_is_served_only_to_an_admin(
     sign_in("admin")
     page = client.get("/admin")
     assert page.status_code == 200
-    assert "Add a user" in page.text and "/app/admin.js" in page.text
+    # Asserted through the i18n key, not the rendered words, so translating the
+    # console does not break this.
+    assert 'data-i18n="ac.add_user"' in page.text
+    assert "/app/admin.js" in page.text
