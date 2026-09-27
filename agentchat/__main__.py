@@ -88,7 +88,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = Settings(
             args.data_dir,
-            secure_cookies=args.allow_remote,
             default_budget_usd=_amount(args.default_budget_usd),
             default_burst_usd=_amount(args.default_burst_usd),
             catalog_path=args.config,

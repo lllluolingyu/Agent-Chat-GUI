@@ -67,9 +67,8 @@ def catalog() -> Catalog:
 
 @pytest.fixture
 def client(tmp_path: Path, catalog: Catalog) -> Iterator[TestClient]:
-    # The test client speaks plain http, so Secure cookies would never be sent.
     app = create_app(
-        Settings(tmp_path, secure_cookies=False),
+        Settings(tmp_path),
         catalog=catalog,
         backend_factory=lambda rec, store, profiles: FakeBackend(rec, store, profiles),
     )

@@ -30,6 +30,15 @@ def test_login_sets_http_only_cookie_and_logout_revokes_it(client: TestClient) -
     assert client.get("/api/me").status_code == 401
 
 
+def test_session_cookie_is_secure_only_over_https(client: TestClient) -> None:
+    body = {"username": "alice", "password": "alice-password"}
+    # Plain http, as on a LAN: a Secure cookie would be dropped by the browser.
+    plain = client.post("/api/auth/login", json=body)
+    assert "Secure" not in plain.headers["set-cookie"]
+    tls = client.post("https://testserver/api/auth/login", json=body)
+    assert "Secure" in tls.headers["set-cookie"]
+
+
 def test_login_rejects_bad_password_and_unknown_user(client: TestClient) -> None:
     for username, password in [("alice", "nope-nope"), ("nobody", "whatever1")]:
         response = client.post(

@@ -93,7 +93,10 @@ def router() -> APIRouter:
             token,
             max_age=int(SESSION_TTL.total_seconds()),
             httponly=True,
-            secure=context.settings.secure_cookies,
+            # Browsers drop Secure cookies over plain http (except localhost),
+            # so follow the scheme the request actually arrived on: https
+            # behind a TLS proxy, http on a trusted LAN.
+            secure=request.url.scheme == "https",
             samesite="strict",
             path="/",
         )

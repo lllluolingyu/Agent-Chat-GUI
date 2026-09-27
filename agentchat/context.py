@@ -38,10 +38,6 @@ def default_data_dir() -> Path:
 @dataclass(frozen=True, slots=True)
 class Settings:
     data_dir: Path
-    # Browsers only send Secure cookies over HTTPS (and localhost); a remote
-    # deployment sits behind a TLS proxy, so the CLI enables this with
-    # --allow-remote.
-    secure_cookies: bool = True
     # Default limits for a user without an explicit policy.
     default_budget_usd: Decimal | None = Decimal("20")
     default_burst_usd: Decimal | None = Decimal("3")
